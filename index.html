@@ -48,7 +48,9 @@ canvas{width:100%;height:160px;border:2px dashed var(--line);border-radius:10px;
 .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 button{font:inherit;padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--surf);color:var(--tx);cursor:pointer}
 button.p{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
-@media print{.btns,.ex,.lang{display:none}body{background:#fff}.card{break-inside:avoid}}
+#big{display:none;position:fixed;inset:0;z-index:50;background:var(--bg);flex-direction:column;gap:10px;padding:12px;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+#big canvas{flex:1;height:auto;min-height:0}
+@media print{#big{display:none!important}.btns,.ex,.lang{display:none}body{background:#fff}.card{break-inside:avoid}}
 </style>
 </head>
 <body>
@@ -82,7 +84,7 @@ button.p{background:var(--accent);color:#fff;border-color:var(--accent);font-wei
       <div class="btns"><button type="button" data-clr="sig1" data-i="clr"></button></div>
       <label class="f" for="n1" style="margin-top:10px" data-i="pn"></label><input type="text" id="n1"></div>
     <div><label class="f" data-i="s2"></label><canvas id="sig2"></canvas>
-      <div class="btns"><button type="button" data-clr="sig2" data-i="clr"></button></div>
+      <div class="btns"><button type="button" data-clr="sig2" data-i="clr"></button><button type="button" id="exp" data-i="exp"></button></div>
       <label class="f" for="n2" style="margin-top:10px" data-i="pn"></label><input type="text" id="n2"></div>
   </div>
 </div>
@@ -90,23 +92,25 @@ button.p{background:var(--accent);color:#fff;border-color:var(--accent);font-wei
 <div class="btns"><button type="button" class="p" id="print" data-i="print"></button></div>
 </div>
 
+<div id="big"><h2 style="margin:0;font-size:18px" data-i="bigt"></h2><canvas id="bigc"></canvas>
+<div class="btns" style="margin:0"><button type="button" id="bclr" data-i="clr"></button><button type="button" id="bcan" data-i="cancel"></button><button type="button" class="p" id="bok" data-i="done"></button></div></div>
 <script>
 const L={
-th:{title:'แบบตรวจสุขภาพห้องชุด',sub:'ติกเลือก ผ่าน / ไม่ผ่าน / เปลี่ยน ในแต่ละหัวข้อ โดยดูรูปตัวอย่างประกอบ',room:'เลขห้อง',roomph:'เช่น B1-0419',insp:'ชื่อผู้ตรวจ',date:'วันที่เข้าตรวจ',time:'เวลาที่เข้าตรวจ',now:'ใช้วันที่และเวลาปัจจุบัน',exg:'✓ ตัวอย่างที่ดี',exb:'✗ ตัวอย่างที่เสีย',ok:'ผ่าน',no:'ไม่ผ่าน',chg:'เปลี่ยน',un:'ยังไม่ติก',note:'หมายเหตุ (ถ้ามี)',sumt:'สรุปผล',sigt:'ลายเซ็น',sigh:'เซ็นชื่อในกรอบ (ใช้นิ้วหรือเมาส์)',s1:'ผู้ตรวจสอบ',s2:'ผู้พักอาศัย',clr:'ล้างลายเซ็น',pn:'ชื่อตัวบรรจง',print:'🖨️ พิมพ์ / บันทึกเป็น PDF',
+th:{title:'แบบตรวจสุขภาพห้องชุด',sub:'ติกเลือก ผ่าน / ไม่ผ่าน / เปลี่ยน ในแต่ละหัวข้อ โดยดูรูปตัวอย่างประกอบ',room:'เลขห้อง',roomph:'เช่น B1-0419',insp:'ชื่อผู้ตรวจ',date:'วันที่เข้าตรวจ',time:'เวลาที่เข้าตรวจ',now:'ใช้วันที่และเวลาปัจจุบัน',exg:'✓ ตัวอย่างที่ดี',exb:'✗ ตัวอย่างที่เสีย',ok:'ผ่าน',no:'ไม่ผ่าน',chg:'เปลี่ยน',un:'ยังไม่ติก',note:'หมายเหตุ (ถ้ามี)',sumt:'สรุปผล',sigt:'ลายเซ็น',sigh:'เซ็นชื่อในกรอบ (ใช้นิ้วหรือเมาส์)',s1:'ผู้ตรวจสอบ',s2:'ผู้พักอาศัย',clr:'ล้างลายเซ็น',pn:'ชื่อตัวบรรจง',print:'🖨️ พิมพ์ / บันทึกเป็น PDF',exp:'🔍 ขยายช่องเซ็น',bigt:'เซ็นชื่อผู้พักอาศัย',done:'ตกลง',cancel:'ยกเลิก',
 items:[['1. หัวสโมค (เครื่องตรวจจับควัน)','ดูที่ไฟ LED ว่ามีไฟค้างติดตลอดเวลาหรือไม่','ไม่มีไฟ LED ค้าง','ไฟ LED ติดค้าง'],
 ['2. ก๊อกน้ำ (ซิงค์ล้างจาน)','เปิด-ปิดดู แล้วเช็กว่าปิดสนิท ไม่หยดซึม ไม่มีคราบสนิม','แห้ง ปิดสนิท','หยดซึม / มีคราบ'],
 ['3. สต๊อปวาล์ว (จุดต่อสายฉีดชำระ และสายเติมชักโครก)','ดูรอยต่อและลูกบิด ว่ามีน้ำซึม สนิม หรือบิดแล้วฝืดหรือไม่','รอยต่อแห้ง บิดได้ปกติ','น้ำซึม / เป็นสนิม'],
 ['4. สายน้ำดีใต้ซิงค์ล้างจาน','ดูตัวสายว่าบวม แตกลาย ถักขาด และดูข้อต่อว่ามีน้ำซึมหรือเป็นสนิมหรือไม่','สายเรียบ ข้อต่อแห้ง','สายบวม/แตก ข้อต่อซึม'],
 ['5. ก๊อกหลังห้อง','เปิด-ปิดดู แล้วเช็กน้ำหยดซึมที่ปากก๊อกและโคนก๊อก','แห้ง ปิดสนิท','หยดซึม / มีคราบ'],
 ['6. ก๊อกอ่างล้างหน้า','เปิด-ปิดดู แล้วเช็กน้ำหยดซึมที่ปากก๊อกและโคนก๊อก','แห้ง ปิดสนิท','หยดซึม / มีคราบ']]},
-en:{title:'Unit Health Inspection Form',sub:'Tick Pass / Fail / Replace for each item, using the example pictures as a guide.',room:'Room No.',roomph:'e.g. B1-0419',insp:'Inspector name',date:'Inspection date',time:'Inspection time',now:'Use current date and time',exg:'✓ Good example',exb:'✗ Bad example',ok:'Pass',no:'Fail',chg:'Replace',un:'Not ticked',note:'Remarks (optional)',sumt:'Summary',sigt:'Signatures',sigh:'Sign inside the box (finger or mouse)',s1:'Inspector',s2:'Resident',clr:'Clear signature',pn:'Printed name',print:'🖨️ Print / Save as PDF',
+en:{title:'Unit Health Inspection Form',sub:'Tick Pass / Fail / Replace for each item, using the example pictures as a guide.',room:'Room No.',roomph:'e.g. B1-0419',insp:'Inspector name',date:'Inspection date',time:'Inspection time',now:'Use current date and time',exg:'✓ Good example',exb:'✗ Bad example',ok:'Pass',no:'Fail',chg:'Replace',un:'Not ticked',note:'Remarks (optional)',sumt:'Summary',sigt:'Signatures',sigh:'Sign inside the box (finger or mouse)',s1:'Inspector',s2:'Resident',clr:'Clear signature',pn:'Printed name',print:'🖨️ Print / Save as PDF',exp:'🔍 Enlarge',bigt:'Resident signature',done:'Done',cancel:'Cancel',
 items:[['1. Smoke detector','Check whether the LED light stays on constantly.','No stuck LED','LED stuck on'],
 ['2. Faucet (kitchen sink)','Open and close it; check it shuts off fully with no drips or rust stains.','Dry, shuts off fully','Dripping / stained'],
 ['3. Stop valve (joint between bidet hose and toilet fill hose)','Check the joint and knob for leaks, rust, or stiff turning.','Dry joint, turns normally','Leaking / rusty'],
 ['4. Water supply hose under kitchen sink','Check the hose for bulges, cracks, or broken braiding, and the fittings for leaks or rust.','Smooth hose, dry fittings','Bulging/cracked hose, leaking fitting'],
 ['5. Rear-of-unit faucet','Open and close it; check for drips at the spout and the base.','Dry, shuts off fully','Dripping / stained'],
 ['6. Bathroom basin faucet','Open and close it; check for drips at the spout and the base.','Dry, shuts off fully','Dripping / stained']]},
-zh:{title:'房间健康检查表',sub:'请参照示例图片，为每个项目勾选 通过 / 不通过 / 更换。',room:'房号',roomph:'例如 B1-0419',insp:'检查人员姓名',date:'检查日期',time:'检查时间',now:'使用当前日期和时间',exg:'✓ 良好示例',exb:'✗ 故障示例',ok:'通过',no:'不通过',chg:'更换',un:'未勾选',note:'备注（可选）',sumt:'结果汇总',sigt:'签名',sigh:'请在框内签名（手指或鼠标）',s1:'检查人员',s2:'住户',clr:'清除签名',pn:'正楷姓名',print:'🖨️ 打印 / 保存为 PDF',
+zh:{title:'房间健康检查表',sub:'请参照示例图片，为每个项目勾选 通过 / 不通过 / 更换。',room:'房号',roomph:'例如 B1-0419',insp:'检查人员姓名',date:'检查日期',time:'检查时间',now:'使用当前日期和时间',exg:'✓ 良好示例',exb:'✗ 故障示例',ok:'通过',no:'不通过',chg:'更换',un:'未勾选',note:'备注（可选）',sumt:'结果汇总',sigt:'签名',sigh:'请在框内签名（手指或鼠标）',s1:'检查人员',s2:'住户',clr:'清除签名',pn:'正楷姓名',print:'🖨️ 打印 / 保存为 PDF',exp:'🔍 放大签名框',bigt:'住户签名',done:'确定',cancel:'取消',
 items:[['1. 烟雾探测器','查看 LED 指示灯是否一直亮着。','LED 未常亮','LED 常亮'],
 ['2. 水龙头（厨房水槽）','开关试试，检查是否能完全关紧，有无滴漏或锈迹。','干燥，关紧','滴漏 / 有污渍'],
 ['3. 角阀（喷枪软管与马桶进水软管的连接处）','检查接口和旋钮是否渗水、生锈，转动是否卡涩。','接口干燥，转动正常','渗水 / 生锈'],
@@ -156,6 +160,20 @@ function pad(id){const cv=document.getElementById(id),cx=cv.getContext('2d');let
  ['pointerup','pointercancel'].forEach(v=>cv.addEventListener(v,()=>on=false));
  document.querySelector(`[data-clr=${id}]`).onclick=()=>cx.clearRect(0,0,cv.width,cv.height)}
 pad('sig1');pad('sig2');
+(function(){const ov=document.getElementById('big'),bc=document.getElementById('bigc'),bx=bc.getContext('2d'),sm=document.getElementById('sig2');let on=false;
+ function fit(src,dw,dh){const k=Math.min(dw/src.width,dh/src.height),w=src.width*k,h=src.height*k;return[(dw-w)/2,(dh-h)/2,w,h]}
+ function setup(){const r=bc.getBoundingClientRect(),s=window.devicePixelRatio||1;bc.width=r.width*s;bc.height=r.height*s;bx.setTransform(s,0,0,s,0,0);bx.lineWidth=4;bx.lineCap='round';bx.strokeStyle='#111'}
+ document.getElementById('exp').onclick=()=>{ov.style.display='flex';document.body.style.overflow='hidden';setup();
+  bx.save();bx.setTransform(1,0,0,1,0,0);const[x,y,w,h]=fit(sm,bc.width,bc.height);bx.drawImage(sm,x,y,w,h);bx.restore()};
+ function close(){ov.style.display='none';document.body.style.overflow=''}
+ const pt=e=>{const r=bc.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+ bc.addEventListener('pointerdown',e=>{on=true;bc.setPointerCapture(e.pointerId);const[x,y]=pt(e);bx.beginPath();bx.moveTo(x,y);bx.lineTo(x+.1,y);bx.stroke()});
+ bc.addEventListener('pointermove',e=>{if(!on)return;const[x,y]=pt(e);bx.lineTo(x,y);bx.stroke()});
+ ['pointerup','pointercancel'].forEach(v=>bc.addEventListener(v,()=>on=false));
+ document.getElementById('bclr').onclick=()=>{bx.save();bx.setTransform(1,0,0,1,0,0);bx.clearRect(0,0,bc.width,bc.height);bx.restore()};
+ document.getElementById('bcan').onclick=close;
+ document.getElementById('bok').onclick=()=>{const c=sm.getContext('2d'),r=sm.getBoundingClientRect(),s=sm.width/r.width;
+  c.save();c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,sm.width,sm.height);const[x,y,w,h]=fit(bc,sm.width,sm.height);c.drawImage(bc,x,y,w,h);c.restore();close()}})();
 document.getElementById('print').onclick=()=>window.print();
 </script>
 </body>
